@@ -139,6 +139,31 @@ function renderApp() {
       <button class="tab" data-view="stats">Stats</button>
     </nav>
 
+    <section class="tool-promo">
+
+      <div class="tool-promo-copy">
+
+        <span class="tool-promo-kicker">
+          More French practice
+        </span>
+
+        <h2>
+          Learn the French alphabet
+        </h2>
+
+        <p>
+          Practice letter names, sounds, accented characters,
+          and pronunciation.
+        </p>
+
+      </div>
+
+      <a class="tool-promo-action" href="/alphabet/">
+        Open Alphabet Lab →
+      </a>
+
+    </section>
+
     <main>
       <section id="private" class="view active"></section>
       <section id="global" class="view"></section>

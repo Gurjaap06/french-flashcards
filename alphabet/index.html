@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      name="description"
+      content="Practice the French alphabet, pronunciation, sounds and accented letters."
+    />
+
+    <title>French Alphabet Lab</title>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <link rel="stylesheet" href="/src/shared.css" />
+
+    <link rel="stylesheet" href="/src/alphabet.css" />
+  </head>
+
+  <body>
+    <header class="site-nav">
+      <div class="site-nav-inner">
+        <a class="site-brand" href="/"> 🇫🇷 French Learning </a>
+
+        <nav class="site-nav-links" aria-label="Main navigation">
+          <a class="site-nav-link" href="/"> Flashcards </a>
+
+          <a class="site-nav-link active" href="/alphabet/"> Alphabet Lab </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="alphabet-page">
+      <section class="alphabet-hero">
+        <p class="alphabet-eyebrow">Pronunciation practice</p>
+
+        <h1>French Alphabet Lab</h1>
+
+        <p class="alphabet-subtitle">
+          Explore French letters, accented characters, example words and
+          pronunciation.
+        </p>
+      </section>
+
+      <section class="alphabet-controls" aria-label="Alphabet controls">
+        <div class="toggle-group">
+          <span class="control-label"> Mode </span>
+
+          <div class="segmented-control">
+            <button
+              id="modeNames"
+              class="control-button active"
+              type="button"
+              aria-pressed="true"
+            >
+              Letter Names
+            </button>
+
+            <button
+              id="modeSounds"
+              class="control-button"
+              type="button"
+              aria-pressed="false"
+            >
+              Sounds
+            </button>
+          </div>
+        </div>
+
+        <div class="toggle-group">
+          <span class="control-label"> Accents </span>
+
+          <button
+            id="accentToggle"
+            class="control-button"
+            type="button"
+            aria-pressed="false"
+          >
+            OFF
+          </button>
+        </div>
+      </section>
+
+      <section class="alphabet-layout">
+        <div class="alphabet-grid-section">
+          <div class="section-heading">
+            <div>
+              <p class="alphabet-eyebrow">Choose a character</p>
+
+              <h2>Alphabet</h2>
+            </div>
+
+            <p class="section-help">Click once to enable audio.</p>
+          </div>
+
+          <div
+            id="alphabetGrid"
+            class="alphabet-grid"
+            aria-label="French alphabet"
+          ></div>
+        </div>
+
+        <aside id="infoCard" class="info-card" aria-live="polite">
+          <p id="infoMode" class="info-mode">Letter name</p>
+
+          <h2 id="infoLetter">A</h2>
+
+          <p id="infoIPA" class="info-ipa">/a/</p>
+
+          <div class="info-example">
+            <span> Example word </span>
+
+            <strong id="infoWord"> ami </strong>
+          </div>
+
+          <button id="repeatBtn" class="repeat-button" type="button">
+            🔊 Repeat pronunciation
+          </button>
+
+          <p id="audioNote" class="audio-note">
+            Click a letter once to enable audio. After that, hovering can play
+            pronunciation too.
+          </p>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="/src/alphabet.js"></script>
+  </body>
+</html>
