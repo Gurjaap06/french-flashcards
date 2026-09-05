@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/alphabet",
-      "destination": "/alphabet/index.html"
-    }
-  ]
-}
