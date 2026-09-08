@@ -16,16 +16,20 @@ let currentUser = null;
 let privateCards = [];
 let globalWords = [];
 let currentQuiz = null;
-let activeView = "private";
+let activeView = "dashboard";
 
 const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
 let currentLanguageCode = isSupportedLanguage(storedLanguage)
   ? storedLanguage
-  : "fr";
+  : null;
 
 /* ------------------------------ Helpers ------------------------------ */
 
 function getCurrentLanguage() {
+  if (!isSupportedLanguage(currentLanguageCode)) {
+    return null;
+  }
+
   return getLanguage(currentLanguageCode);
 }
 
@@ -92,6 +96,48 @@ function calculateAccuracy(stats) {
   if (total === 0) return 0;
 
   return Math.round((correct / total) * 100);
+}
+
+function getLanguageProgress() {
+  const totalWords = privateCards.length;
+
+  const totalReviews = privateCards.reduce(
+    (sum, card) => sum + (getStats(card)?.total_reviews ?? 0),
+    0,
+  );
+
+  const correctReviews = privateCards.reduce(
+    (sum, card) => sum + (getStats(card)?.correct_reviews ?? 0),
+    0,
+  );
+
+  const mastered = privateCards.filter(
+    (card) => getStats(card)?.status === "MASTERED",
+  ).length;
+
+  const now = new Date();
+
+  const due = privateCards.filter((card) => {
+    const stats = getStats(card);
+
+    if (!stats?.next_review) {
+      return true;
+    }
+
+    return new Date(stats.next_review) <= now;
+  }).length;
+
+  const accuracy =
+    totalReviews === 0 ? 0 : Math.round((correctReviews / totalReviews) * 100);
+
+  return {
+    totalWords,
+    totalReviews,
+    correctReviews,
+    mastered,
+    due,
+    accuracy,
+  };
 }
 
 function showError(error, fallback = "Something went wrong.") {
@@ -204,77 +250,173 @@ async function logout() {
   privateCards = [];
   globalWords = [];
   currentQuiz = null;
+  activeView = "dashboard";
 
   renderAuth();
 }
 
 /* ------------------------------ App shell ------------------------------ */
 
+function renderLanguageHome() {
+  const languages = getLanguageList();
+
+  app.innerHTML = `
+    <main class="language-home">
+      <header class="language-home-header">
+        <div>
+          <div class="eyebrow">Language learning</div>
+          <h1>Choose a language</h1>
+          <p class="muted">
+            Select the language you want to learn.
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <span class="user-email muted">
+            ${escapeHtml(currentUser?.email ?? "")}
+          </span>
+
+          <button id="home-logout" type="button">
+            Log out
+          </button>
+        </div>
+      </header>
+
+      <section class="language-grid">
+        ${languages
+          .map(
+            (language) => `
+              <button
+                type="button"
+                class="language-card ${
+                  language.code === currentLanguageCode ? "selected" : ""
+                }"
+                data-language="${escapeHtml(language.code)}"
+              >
+                <span class="language-card-flag">
+                  ${language.flag}
+                </span>
+
+                <div>
+                  <h2>${escapeHtml(language.name)}</h2>
+
+                  <p>
+                    Learn vocabulary, practice pronunciation,
+                    review flashcards, and track your progress.
+                  </p>
+                </div>
+
+                <span class="language-card-action">
+                  ${
+                    language.code === currentLanguageCode
+                      ? "Continue learning →"
+                      : `Learn ${escapeHtml(language.name)} →`
+                  }
+                </span>
+              </button>
+            `,
+          )
+          .join("")}
+      </section>
+    </main>
+  `;
+
+  document.querySelector("#home-logout").addEventListener("click", logout);
+
+  document.querySelectorAll("[data-language]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectLanguage(button.dataset.language);
+    });
+  });
+}
+
+async function selectLanguage(code) {
+  if (!isSupportedLanguage(code)) {
+    return;
+  }
+
+  currentLanguageCode = code;
+  localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguageCode);
+
+  activeView = "dashboard";
+  currentQuiz = null;
+
+  await refreshData();
+  renderApp();
+}
+
 function renderApp() {
   const language = getCurrentLanguage();
+
+  if (!language) {
+    renderLanguageHome();
+    return;
+  }
 
   app.innerHTML = `
     <header class="app-header">
       <div>
-        <div class="eyebrow">Language learning</div>
-        <h1>${language.flag} ${escapeHtml(language.name)} Flashcards</h1>
+        <div class="eyebrow">
+          ${escapeHtml(language.name)} course
+        </div>
+
+        <h1>
+          ${language.flag}
+          ${escapeHtml(language.name)} Learning
+        </h1>
+
         <p class="muted">
-          Private practice + shared ${escapeHtml(language.name)} library
+          Learn vocabulary, practice, and track your progress.
         </p>
       </div>
 
       <div class="header-actions">
-        <label class="language-picker">
-          <span>Language</span>
+        <button id="all-languages" type="button">
+          All Languages
+        </button>
 
-          <select id="language-select">
-            ${getLanguageList()
-              .map(
-                (item) => `
-                  <option
-                    value="${item.code}"
-                    ${item.code === currentLanguageCode ? "selected" : ""}
-                  >
-                    ${item.flag} ${escapeHtml(item.name)}
-                  </option>
-                `,
-              )
-              .join("")}
-          </select>
-        </label>
+        <span class="user-email muted">
+          ${escapeHtml(currentUser.email)}
+        </span>
 
-        <span class="user-email muted">${escapeHtml(currentUser.email)}</span>
-        <button id="logout">Log out</button>
+        <button id="logout" type="button">
+          Log out
+        </button>
       </div>
     </header>
 
     <nav class="tabs" aria-label="Main navigation">
-  <button class="tab" data-view="private">
-    My Flashcards
-  </button>
+      <button class="tab" data-view="dashboard">
+        Dashboard
+      </button>
 
-  <button class="tab" data-view="global">
-    Global Library
-  </button>
+      <button class="tab" data-view="private">
+        My Flashcards
+      </button>
 
-  <button class="tab" data-view="add">
-    Add Word
-  </button>
+      <button class="tab" data-view="global">
+        Vocabulary
+      </button>
 
-  <button class="tab" data-view="quiz">
-    Quiz
-  </button>
+      <button class="tab" data-view="add">
+        Add Word
+      </button>
 
-  <button class="tab" data-view="stats">
-    Stats
-  </button>
+      <button class="tab" data-view="quiz">
+        Quiz
+      </button>
 
-  <button class="tab" data-view="alphabet">
-    Alphabet Lab
-  </button>
-</nav>
+      <button class="tab" data-view="stats">
+        Stats
+      </button>
+
+      <button class="tab" data-view="alphabet">
+        Alphabet
+      </button>
+    </nav>
 
     <main class="app-main">
+      <section id="dashboard" class="view"></section>
       <section id="private" class="view"></section>
       <section id="global" class="view"></section>
       <section id="add" class="view"></section>
@@ -286,13 +428,16 @@ function renderApp() {
   document.querySelector("#logout").addEventListener("click", logout);
 
   document
-    .querySelector("#language-select")
-    .addEventListener("change", handleLanguageChange);
+    .querySelector("#all-languages")
+    .addEventListener("click", renderLanguageHome);
 
   document.querySelectorAll(".tab").forEach((tab) => {
-    tab.addEventListener("click", () => switchView(tab.dataset.view));
+    tab.addEventListener("click", () => {
+      switchView(tab.dataset.view);
+    });
   });
 
+  renderDashboardView();
   renderPrivateView();
   renderGlobalView();
   renderAddView();
@@ -302,31 +447,212 @@ function renderApp() {
   switchView(activeView);
 }
 
-async function handleLanguageChange(event) {
-  const newCode = event.target.value;
+function renderDashboardView() {
+  const section = document.querySelector("#dashboard");
 
-  if (!isSupportedLanguage(newCode) || newCode === currentLanguageCode) {
+  if (!section) {
     return;
   }
 
-  currentLanguageCode = newCode;
-  localStorage.setItem(LANGUAGE_STORAGE_KEY, newCode);
+  const language = getCurrentLanguage();
 
-  currentQuiz = null;
+  if (!language) {
+    return;
+  }
 
-  await refreshData();
-  renderApp();
+  const { totalWords, mastered, due, accuracy } = getLanguageProgress();
+
+  section.innerHTML = `
+    <div class="dashboard-hero">
+      <div>
+        <div class="eyebrow">
+          Continue learning
+        </div>
+
+        <h2>
+          ${language.flag}
+          ${escapeHtml(language.name)}
+        </h2>
+
+        <p class="muted">
+          Choose what you want to practice today.
+        </p>
+      </div>
+
+      <button
+        class="primary"
+        type="button"
+        data-dashboard-view="quiz"
+      >
+        Start Review
+      </button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat">
+        <span>Words</span>
+        <strong>${totalWords}</strong>
+      </div>
+
+      <div class="stat">
+        <span>Due today</span>
+        <strong>${due}</strong>
+      </div>
+
+      <div class="stat">
+        <span>Mastered</span>
+        <strong>${mastered}</strong>
+      </div>
+
+      <div class="stat">
+        <span>Accuracy</span>
+        <strong>${accuracy}%</strong>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <button
+        class="dashboard-card"
+        type="button"
+        data-dashboard-view="private"
+      >
+        <span class="dashboard-card-icon">Aa</span>
+
+        <div>
+          <h3>My Flashcards</h3>
+
+          <p>
+            Review the ${totalWords} words currently
+            in your ${escapeHtml(language.name)} collection.
+          </p>
+        </div>
+
+        <span class="dashboard-card-link">
+          Open flashcards →
+        </span>
+      </button>
+
+      <button
+        class="dashboard-card"
+        type="button"
+        data-dashboard-view="alphabet"
+      >
+        <span class="dashboard-card-icon">ABC</span>
+
+        <div>
+          <h3>Alphabet Lab</h3>
+
+          <p>
+            Practice letters, sounds, and pronunciation.
+          </p>
+        </div>
+
+        <span class="dashboard-card-link">
+          Practice alphabet →
+        </span>
+      </button>
+
+      <button
+        class="dashboard-card"
+        type="button"
+        data-dashboard-view="global"
+      >
+        <span class="dashboard-card-icon">W</span>
+
+        <div>
+          <h3>Vocabulary Library</h3>
+
+          <p>
+            Browse ${globalWords.length} shared
+            ${escapeHtml(language.name)} words.
+          </p>
+        </div>
+
+        <span class="dashboard-card-link">
+          Browse vocabulary →
+        </span>
+      </button>
+
+      <button
+        class="dashboard-card"
+        type="button"
+        data-dashboard-view="quiz"
+      >
+        <span class="dashboard-card-icon">?</span>
+
+        <div>
+          <h3>Quiz</h3>
+
+          <p>
+            Test yourself with your saved vocabulary.
+            ${due} ${due === 1 ? "word is" : "words are"} due.
+          </p>
+        </div>
+
+        <span class="dashboard-card-link">
+          Start quiz →
+        </span>
+      </button>
+
+      <button
+        class="dashboard-card"
+        type="button"
+        data-dashboard-view="add"
+      >
+        <span class="dashboard-card-icon">+</span>
+
+        <div>
+          <h3>Add Vocabulary</h3>
+
+          <p>
+            Add another ${escapeHtml(language.name)}
+            word to your collection.
+          </p>
+        </div>
+
+        <span class="dashboard-card-link">
+          Add a word →
+        </span>
+      </button>
+
+      <button
+        class="dashboard-card"
+        type="button"
+        data-dashboard-view="stats"
+      >
+        <span class="dashboard-card-icon">%</span>
+
+        <div>
+          <h3>Progress</h3>
+
+          <p>
+            See your mastery, accuracy,
+            reviews, and learning stats.
+          </p>
+        </div>
+
+        <span class="dashboard-card-link">
+          View progress →
+        </span>
+      </button>
+    </div>
+  `;
+
+  section.querySelectorAll("[data-dashboard-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      switchView(button.dataset.dashboardView);
+    });
+  });
 }
 
 function switchView(viewId) {
   /*
     Alphabet Lab is a separate Vite page,
     so navigate there instead of switching
-    one of the flashcard views.
+    one of the main app views.
   */
   if (viewId === "alphabet") {
     window.location.href = `/alphabet/?lang=${currentLanguageCode}`;
-
     return;
   }
 
@@ -339,6 +665,10 @@ function switchView(viewId) {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.view === viewId);
   });
+
+  if (viewId === "dashboard") {
+    renderDashboardView();
+  }
 
   if (viewId === "quiz") {
     renderQuizView();
@@ -1271,33 +1601,7 @@ function renderStatsView() {
   if (!section) return;
 
   const language = getCurrentLanguage();
-
-  const totalWords = privateCards.length;
-
-  const totalReviews = privateCards.reduce(
-    (sum, card) => sum + (getStats(card)?.total_reviews ?? 0),
-    0,
-  );
-
-  const correctReviews = privateCards.reduce(
-    (sum, card) => sum + (getStats(card)?.correct_reviews ?? 0),
-    0,
-  );
-
-  const mastered = privateCards.filter(
-    (card) => getStats(card)?.status === "MASTERED",
-  ).length;
-
-  const due = privateCards.filter((card) => {
-    const stats = getStats(card);
-
-    if (!stats?.next_review) return true;
-
-    return new Date(stats.next_review) <= new Date();
-  }).length;
-
-  const accuracy =
-    totalReviews === 0 ? 0 : Math.round((correctReviews / totalReviews) * 100);
+  const { totalWords, mastered, due, accuracy } = getLanguageProgress();
 
   section.innerHTML = `
     <div class="page-heading">
@@ -1384,6 +1688,12 @@ async function startApp() {
   }
 
   currentUser = user;
+  activeView = "dashboard";
+
+  if (!isSupportedLanguage(currentLanguageCode)) {
+    renderLanguageHome();
+    return;
+  }
 
   await refreshData();
   renderApp();
