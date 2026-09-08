@@ -249,12 +249,30 @@ function renderApp() {
     </header>
 
     <nav class="tabs" aria-label="Main navigation">
-      <button class="tab" data-view="private">My Flashcards</button>
-      <button class="tab" data-view="global">Global Library</button>
-      <button class="tab" data-view="add">Add Word</button>
-      <button class="tab" data-view="quiz">Quiz</button>
-      <button class="tab" data-view="stats">Stats</button>
-    </nav>
+  <button class="tab" data-view="private">
+    My Flashcards
+  </button>
+
+  <button class="tab" data-view="global">
+    Global Library
+  </button>
+
+  <button class="tab" data-view="add">
+    Add Word
+  </button>
+
+  <button class="tab" data-view="quiz">
+    Quiz
+  </button>
+
+  <button class="tab" data-view="stats">
+    Stats
+  </button>
+
+  <button class="tab" data-view="alphabet">
+    Alphabet Lab
+  </button>
+</nav>
 
     <main class="app-main">
       <section id="private" class="view"></section>
@@ -301,6 +319,17 @@ async function handleLanguageChange(event) {
 }
 
 function switchView(viewId) {
+  /*
+    Alphabet Lab is a separate Vite page,
+    so navigate there instead of switching
+    one of the flashcard views.
+  */
+  if (viewId === "alphabet") {
+    window.location.href = `/alphabet/?lang=${currentLanguageCode}`;
+
+    return;
+  }
+
   activeView = viewId;
 
   document.querySelectorAll(".view").forEach((view) => {
