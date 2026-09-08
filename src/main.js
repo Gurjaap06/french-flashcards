@@ -15,6 +15,9 @@ const LANGUAGE_STORAGE_KEY = "selectedLanguage";
 let currentUser = null;
 let privateCards = [];
 let globalWords = [];
+let lessons = [];
+let lessonProgress = [];
+let currentLesson = null;
 let currentQuiz = null;
 let activeView = "dashboard";
 
@@ -249,6 +252,9 @@ async function logout() {
   currentUser = null;
   privateCards = [];
   globalWords = [];
+  lessons = [];
+  lessonProgress = [];
+  currentLesson = null;
   currentQuiz = null;
   activeView = "dashboard";
 
@@ -340,6 +346,7 @@ async function selectLanguage(code) {
 
   activeView = "dashboard";
   currentQuiz = null;
+  currentLesson = null;
 
   await refreshData();
   renderApp();
@@ -390,6 +397,10 @@ function renderApp() {
         Dashboard
       </button>
 
+      <button class="tab" data-view="lessons">
+        Lessons
+      </button>
+
       <button class="tab" data-view="private">
         My Flashcards
       </button>
@@ -417,6 +428,8 @@ function renderApp() {
 
     <main class="app-main">
       <section id="dashboard" class="view"></section>
+      <section id="lessons" class="view"></section>
+      <section id="lesson-detail" class="view"></section>
       <section id="private" class="view"></section>
       <section id="global" class="view"></section>
       <section id="add" class="view"></section>
@@ -438,6 +451,12 @@ function renderApp() {
   });
 
   renderDashboardView();
+  renderLessonsView();
+
+  if (currentLesson) {
+    renderLessonDetail();
+  }
+
   renderPrivateView();
   renderGlobalView();
   renderAddView();
@@ -461,6 +480,13 @@ function renderDashboardView() {
   }
 
   const { totalWords, mastered, due, accuracy } = getLanguageProgress();
+
+  const completedLessons = lessons.filter((lesson) => {
+    return lessonProgress.some(
+      (progress) =>
+        progress.lesson_id === lesson.id && progress.status === "completed",
+    );
+  }).length;
 
   section.innerHTML = `
     <div class="dashboard-hero">
@@ -511,6 +537,27 @@ function renderDashboardView() {
     </div>
 
     <div class="dashboard-grid">
+      <button
+        class="dashboard-card"
+        type="button"
+        data-dashboard-view="lessons"
+      >
+        <span class="dashboard-card-icon">01</span>
+
+        <div>
+          <h3>Lessons</h3>
+
+          <p>
+            Learn ${escapeHtml(language.name)} through structured beginner
+            lessons. ${completedLessons}/${lessons.length} completed.
+          </p>
+        </div>
+
+        <span class="dashboard-card-link">
+          Start learning →
+        </span>
+      </button>
+
       <button
         class="dashboard-card"
         type="button"
@@ -670,6 +717,14 @@ function switchView(viewId) {
     renderDashboardView();
   }
 
+  if (viewId === "lessons") {
+    renderLessonsView();
+  }
+
+  if (viewId === "lesson-detail") {
+    renderLessonDetail();
+  }
+
   if (viewId === "quiz") {
     renderQuizView();
   }
@@ -745,8 +800,498 @@ async function loadGlobalWords() {
   globalWords = data ?? [];
 }
 
+async function loadLessons() {
+  const { data, error } = await supabase
+    .from("lessons")
+    .select("*")
+    .eq("language_code", currentLanguageCode)
+    .eq("published", true)
+    .order("order_index", { ascending: true });
+
+  if (error) {
+    showError(error);
+    lessons = [];
+    return;
+  }
+
+  lessons = data ?? [];
+}
+
+async function loadLessonProgress() {
+  const { data, error } = await supabase
+    .from("user_lesson_progress")
+    .select("*")
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    showError(error);
+    lessonProgress = [];
+    return;
+  }
+
+  lessonProgress = data ?? [];
+}
+
 async function refreshData() {
-  await Promise.all([loadPrivateCards(), loadGlobalWords()]);
+  await Promise.all([
+    loadPrivateCards(),
+    loadGlobalWords(),
+    loadLessons(),
+    loadLessonProgress(),
+  ]);
+}
+
+/* ------------------------------ Lessons ------------------------------ */
+
+function getLessonProgress(lessonId) {
+  return (
+    lessonProgress.find((progress) => progress.lesson_id === lessonId) ?? null
+  );
+}
+
+function formatLessonStatus(status) {
+  if (status === "completed") {
+    return "Completed";
+  }
+
+  if (status === "in_progress") {
+    return "In progress";
+  }
+
+  return "Not started";
+}
+
+function renderLessonsView() {
+  const section = document.querySelector("#lessons");
+
+  if (!section) {
+    return;
+  }
+
+  const language = getCurrentLanguage();
+
+  if (!language) {
+    return;
+  }
+
+  if (lessons.length === 0) {
+    section.innerHTML = `
+      <div class="page-heading">
+        <div class="eyebrow">
+          ${escapeHtml(language.name)} course
+        </div>
+
+        <h2>
+          ${language.flag}
+          ${escapeHtml(language.name)} Lessons
+        </h2>
+
+        <p class="muted">
+          Learn ${escapeHtml(language.name)} step by step.
+        </p>
+      </div>
+
+      <div class="empty-state">
+        <h3>No lessons yet</h3>
+
+        <p>
+          Lessons have not been added for
+          ${escapeHtml(language.name)} yet.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  section.innerHTML = `
+    <div class="page-heading">
+      <div class="eyebrow">
+        ${escapeHtml(language.name)} course
+      </div>
+
+      <h2>
+        ${language.flag}
+        ${escapeHtml(language.name)} Lessons
+      </h2>
+
+      <p class="muted">
+        Learn ${escapeHtml(language.name)} step by step.
+      </p>
+    </div>
+
+    <div class="lesson-grid">
+      ${lessons
+        .map((lesson) => {
+          const progress = getLessonProgress(lesson.id);
+          const status = progress?.status ?? "not_started";
+          const completed = status === "completed";
+
+          return `
+            <article class="lesson-card ${completed ? "completed" : ""}">
+              <div class="lesson-card-top">
+                <span class="lesson-number">
+                  Lesson ${lesson.order_index}
+                </span>
+
+                ${
+                  completed
+                    ? `
+                      <span class="lesson-completed">
+                        ✓ Completed
+                      </span>
+                    `
+                    : ""
+                }
+              </div>
+
+              <h3>${escapeHtml(lesson.title)}</h3>
+
+              <p class="muted">
+                ${escapeHtml(lesson.description)}
+              </p>
+
+              <div class="pills">
+                <span>${escapeHtml(lesson.level)}</span>
+                <span>${escapeHtml(formatLessonStatus(status))}</span>
+              </div>
+
+              <button
+                class="primary"
+                type="button"
+                data-open-lesson="${lesson.id}"
+              >
+                ${
+                  completed
+                    ? "Review Lesson"
+                    : status === "in_progress"
+                      ? "Continue Lesson"
+                      : "Start Lesson"
+                }
+              </button>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+
+  section.querySelectorAll("[data-open-lesson]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openLesson(button.dataset.openLesson);
+    });
+  });
+}
+
+async function openLesson(lessonId) {
+  const lesson = lessons.find((item) => item.id === lessonId);
+
+  if (!lesson) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("lesson_words")
+    .select("*")
+    .eq("lesson_id", lessonId)
+    .order("position", { ascending: true });
+
+  if (error) {
+    showError(error);
+    return;
+  }
+
+  currentLesson = {
+    ...lesson,
+    words: data ?? [],
+  };
+
+  await markLessonStarted(lessonId);
+  switchView("lesson-detail");
+}
+
+async function markLessonStarted(lessonId) {
+  const existing = getLessonProgress(lessonId);
+
+  if (existing?.status === "completed") {
+    return;
+  }
+
+  const { error } = await supabase.from("user_lesson_progress").upsert(
+    {
+      user_id: currentUser.id,
+      lesson_id: lessonId,
+      status: "in_progress",
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "user_id,lesson_id",
+    },
+  );
+
+  if (error) {
+    showError(error);
+    return;
+  }
+
+  await loadLessonProgress();
+}
+
+function renderLessonContentBlock(block) {
+  if (block?.type === "example") {
+    return `
+      <div class="lesson-example">
+        <strong>${escapeHtml(block.target)}</strong>
+        <span>${escapeHtml(block.translation)}</span>
+      </div>
+    `;
+  }
+
+  if (block?.type === "text") {
+    return `
+      <div class="lesson-text-block">
+        ${
+          block.title
+            ? `
+              <h3>${escapeHtml(block.title)}</h3>
+            `
+            : ""
+        }
+
+        <p>${escapeHtml(block.body)}</p>
+      </div>
+    `;
+  }
+
+  return "";
+}
+
+function findGlobalWordForLessonWord(lessonWord) {
+  const target = normalizeForIdentity(lessonWord.target_word);
+  const translation = normalizeForIdentity(lessonWord.translation);
+
+  return globalWords.find(
+    (word) =>
+      word.normalized_target_word === target &&
+      word.normalized_translation === translation,
+  );
+}
+
+function isLessonWordSaved(lessonWord) {
+  const globalWord = findGlobalWordForLessonWord(lessonWord);
+
+  if (!globalWord) {
+    return false;
+  }
+
+  return privateCards.some((card) => card.global_words?.id === globalWord.id);
+}
+
+function renderLessonDetail() {
+  const section = document.querySelector("#lesson-detail");
+
+  if (!section || !currentLesson) {
+    return;
+  }
+
+  const language = getCurrentLanguage();
+  const content = Array.isArray(currentLesson.content)
+    ? currentLesson.content
+    : [];
+  const progress = getLessonProgress(currentLesson.id);
+  const completed = progress?.status === "completed";
+
+  section.innerHTML = `
+    <button
+      id="back-to-lessons"
+      type="button"
+      class="lesson-back"
+    >
+      ← Back to Lessons
+    </button>
+
+    <div class="lesson-detail-header">
+      <div class="eyebrow">
+        ${escapeHtml(language.name)} · Lesson ${currentLesson.order_index}
+      </div>
+
+      <h2>${escapeHtml(currentLesson.title)}</h2>
+
+      <p class="muted">
+        ${escapeHtml(currentLesson.description)}
+      </p>
+
+      <div class="pills">
+        <span>${escapeHtml(currentLesson.level)}</span>
+        ${completed ? "<span>✓ Completed</span>" : ""}
+      </div>
+    </div>
+
+    <section class="lesson-section">
+      <div class="lesson-section-heading">
+        <span class="lesson-step">1</span>
+
+        <div>
+          <h3>Learn</h3>
+          <p class="muted">Read the explanation and examples.</p>
+        </div>
+      </div>
+
+      <div class="lesson-content">
+        ${content.map(renderLessonContentBlock).join("")}
+      </div>
+    </section>
+
+    <section class="lesson-section">
+      <div class="lesson-section-heading">
+        <span class="lesson-step">2</span>
+
+        <div>
+          <h3>Vocabulary</h3>
+          <p class="muted">Add useful words to your flashcards.</p>
+        </div>
+      </div>
+
+      <div class="lesson-word-list">
+        ${currentLesson.words
+          .map((word) => {
+            const saved = isLessonWordSaved(word);
+
+            return `
+              <div class="lesson-word">
+                <div>
+                  <strong>${escapeHtml(word.target_word)}</strong>
+                  <span>${escapeHtml(word.translation)}</span>
+                  ${
+                    word.example
+                      ? `<small>${escapeHtml(word.example)}</small>`
+                      : ""
+                  }
+                </div>
+
+                <button
+                  type="button"
+                  data-add-lesson-word="${word.id}"
+                  ${saved ? "disabled" : ""}
+                >
+                  ${saved ? "Added ✓" : "Add to Flashcards"}
+                </button>
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+
+    <section class="lesson-section">
+      <div class="lesson-section-heading">
+        <span class="lesson-step">3</span>
+
+        <div>
+          <h3>Finish</h3>
+          <p class="muted">Mark the lesson complete when you're finished.</p>
+        </div>
+      </div>
+
+      <button
+        id="complete-lesson"
+        class="primary"
+        type="button"
+        ${completed ? "disabled" : ""}
+      >
+        ${completed ? "Lesson Completed ✓" : "Complete Lesson"}
+      </button>
+    </section>
+  `;
+
+  document.querySelector("#back-to-lessons").addEventListener("click", () => {
+    currentLesson = null;
+    switchView("lessons");
+  });
+
+  section.querySelectorAll("[data-add-lesson-word]").forEach((button) => {
+    button.addEventListener("click", () => {
+      addLessonWordToMine(button.dataset.addLessonWord);
+    });
+  });
+
+  document.querySelector("#complete-lesson").addEventListener("click", () => {
+    completeLesson(currentLesson.id);
+  });
+}
+
+async function addLessonWordToMine(lessonWordId) {
+  if (!currentLesson) {
+    return;
+  }
+
+  const lessonWord = currentLesson.words.find(
+    (word) => word.id === lessonWordId,
+  );
+
+  if (!lessonWord) {
+    return;
+  }
+
+  if (isLessonWordSaved(lessonWord)) {
+    return;
+  }
+
+  const newWord = {
+    language_code: currentLanguageCode,
+    target_word: lessonWord.target_word,
+    translation: lessonWord.translation,
+    example: lessonWord.example ?? "",
+    category: lessonWord.category ?? "lesson",
+    gender: lessonWord.gender ?? "none",
+    difficulty: lessonWord.difficulty ?? 1,
+    normalized_target_word: normalizeForIdentity(lessonWord.target_word),
+    normalized_translation: normalizeForIdentity(lessonWord.translation),
+    created_by: currentUser.id,
+  };
+
+  const globalWord = await findOrCreateGlobalWord(newWord);
+
+  if (!globalWord) {
+    return;
+  }
+
+  const added = await addGlobalWordToMine(globalWord.id, {
+    refreshViews: false,
+  });
+
+  if (!added) {
+    return;
+  }
+
+  await refreshData();
+  renderLessonDetail();
+  renderDashboardView();
+}
+
+async function completeLesson(lessonId) {
+  const { error } = await supabase.from("user_lesson_progress").upsert(
+    {
+      user_id: currentUser.id,
+      lesson_id: lessonId,
+      status: "completed",
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "user_id,lesson_id",
+    },
+  );
+
+  if (error) {
+    showError(error);
+    return;
+  }
+
+  await loadLessonProgress();
+  currentLesson = null;
+  switchView("lessons");
+  renderDashboardView();
 }
 
 /* ------------------------------ Private cards ------------------------------ */
