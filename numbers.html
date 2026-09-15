@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BoliForge • French Number Lab</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="numbers.css">
+</head>
+
+<body>
+
+<div class="background-glow glow-1"></div>
+<div class="background-glow glow-2"></div>
+
+<header class="hero">
+
+  <nav class="top-nav">
+      <div class="logo">
+          <div class="logo-icon">BF</div>
+          <span>BoliForge</span>
+      </div>
+
+      <div class="language-pill">
+          🇫🇷 French Number Lab
+      </div>
+  </nav>
+
+  <div class="hero-content">
+
+      <h1>Master French Numbers</h1>
+
+      <p>
+          Learn pronunciation, counting, listening, and the famous
+          French 70–99 system through interactive lessons.
+      </p>
+
+      <div class="hero-tags">
+
+          <span>Native Browser Voice</span>
+          <span>Interactive Rules</span>
+          <span>Live Builder</span>
+
+      </div>
+
+  </div>
+
+</header>
+
+<main>
+
+<!-- Controls -->
+
+<section class="controls card">
+
+<div class="control">
+<label>Mode</label>
+
+<select id="modeSelect">
+<option value="learn">Learn</option>
+<option value="quiz">Listening Quiz</option>
+</select>
+
+</div>
+
+<div class="control">
+
+<label>Range</label>
+
+<select id="rangeSelect">
+
+<option value="0-20">0–20</option>
+<option value="21-69">21–69</option>
+<option value="70-99">70–99</option>
+<option value="100+">100+</option>
+
+</select>
+
+</div>
+
+<div class="control">
+
+<label>Audio</label>
+
+<button id="audioToggle" class="toggle active">
+ON
+</button>
+
+</div>
+
+</section>
+
+<!-- Quick Grid -->
+
+<section class="card">
+
+<div class="section-title">
+
+<h2>0–20 Quick Grid</h2>
+
+<p>Click any number to hear its pronunciation.</p>
+
+</div>
+
+<div id="numberGrid" class="number-grid"></div>
+
+</section>
+
+<!-- Detail Card -->
+
+<section class="card">
+
+<div class="section-title">
+
+<h2>Number Details</h2>
+
+<p>Pronunciation and grammar appear here.</p>
+
+</div>
+
+<div id="numberCard" class="number-card">
+
+<div class="placeholder">
+
+Click a number above.
+
+</div>
+
+</div>
+
+</section>
+
+<!-- Pattern -->
+
+<section class="card">
+
+<div class="section-title">
+
+<h2>21–69 Pattern</h2>
+
+<p>The easiest part of French counting.</p>
+
+</div>
+
+<div class="pattern-grid">
+
+<div class="pattern-box">20<br><strong>vingt</strong></div>
+<div class="pattern-box">30<br><strong>trente</strong></div>
+<div class="pattern-box">40<br><strong>quarante</strong></div>
+<div class="pattern-box">50<br><strong>cinquante</strong></div>
+<div class="pattern-box">60<br><strong>soixante</strong></div>
+
+</div>
+
+<div class="rule-callout">
+
+<h3>Rule: Add the Unit</h3>
+
+<p>
+
+22 → vingt-deux
+
+34 → trente-quatre
+
+58 → cinquante-huit
+
+</p>
+
+</div>
+
+<div class="rule-callout">
+
+<h3>Special Rule: "et un"</h3>
+
+<p>
+
+21 → vingt-et-un
+
+31 → trente-et-un
+
+61 → soixante-et-un
+
+</p>
+
+</div>
+
+</section>
+
+<!-- Weird Part -->
+
+<section class="card">
+
+<div class="section-title">
+
+<h2>70–99 Interactive</h2>
+
+<p>The famous French counting trick.</p>
+
+</div>
+
+<div class="builder-demo">
+
+<input type="range"
+
+min="70"
+
+max="99"
+
+value="70"
+
+id="weirdSlider">
+
+<div id="weirdOutput" class="builder-output">
+
+70
+
+soixante-dix
+
+60 + 10
+
+</div>
+
+</div>
+
+</section>
+
+<!-- Hundreds -->
+
+<section class="card">
+
+<div class="section-title">
+
+<h2>Hundreds & Thousands</h2>
+
+<p>Plural rules made simple.</p>
+
+</div>
+
+<div class="cheat-grid">
+
+<div>100 → cent</div>
+<div>101 → cent un</div>
+<div>200 → deux cents</div>
+<div>201 → deux cent un</div>
+<div>1000 → mille</div>
+<div>2000 → deux mille</div>
+
+</div>
+
+</section>
+
+<!-- Builder -->
+
+<section class="card">
+
+<div class="section-title">
+
+<h2>Live Number Builder</h2>
+
+<p>Type any number between 0 and 9999.</p>
+
+</div>
+
+<div class="builder">
+
+<input
+
+type="number"
+
+id="builderInput"
+
+min="0"
+
+max="9999"
+
+value="76">
+
+<div id="builderResult" class="builder-result">
+
+<div class="builder-number">76</div>
+
+<div class="builder-word">
+
+soixante-seize
+
+</div>
+
+<div class="builder-literal">
+
+60 + 16
+
+</div>
+
+<button id="builderSpeak">
+
+🔊 Speak
+
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- Quiz -->
+
+<section class="card">
+
+<div class="section-title">
+
+<h2>Listening Quiz</h2>
+
+<p>Hear the number first. Then choose.</p>
+
+</div>
+
+<div id="quizContainer">
+
+<button id="playQuizAudio" class="primary-button">
+
+🔊 Play Number
+
+</button>
+
+<div id="quizOptions" class="quiz-options"></div>
+
+<div id="quizFeedback"></div>
+
+<button id="nextQuestion" class="secondary-button">
+
+Next
+
+</button>
+
+</div>
+
+</section>
+
+<!-- Cheat Sheet -->
+<!-- ==========================================
+     BoliForge French Numbers Cheat Sheet
+========================================== -->
+
+<section class="card cheat-sheet-card">
+
+  <div class="section-title">
+    <h2>🇫🇷 French Numbers Cheat Sheet</h2>
+    <p>One screen. Every rule.</p>
+  </div>
+
+  <div class="cheat-columns">
+
+    <!-- 0–20 -->
+
+    <div class="cheat-block">
+
+      <h3>0–20 Basics</h3>
+
+      <div class="mini-rule">
+        <span class="rule-badge">0–16</span>
+        <p>Unique words</p>
+        <strong>zéro · un · deux · ... · seize</strong>
+      </div>
+
+      <div class="mini-rule">
+        <span class="rule-badge">17–19</span>
+        <p><code>dix-</code> + number</p>
+        <strong>dix-sept · dix-huit · dix-neuf</strong>
+      </div>
+
+    </div>
+
+    <!-- 20–69 -->
+
+    <div class="cheat-block">
+
+      <h3>20–69 Pattern</h3>
+
+      <div class="formula">
+        <span class="math">Tens + Unit</span>
+      </div>
+
+      <div class="example-list">
+        <div>22 → <strong>vingt-deux</strong></div>
+        <div>34 → <strong>trente-quatre</strong></div>
+        <div>58 → <strong>cinquante-huit</strong></div>
+      </div>
+
+      <div class="mini-rule special">
+        <span class="rule-badge">ET</span>
+        <p>Use <strong>et</strong> before <strong>un</strong>.</p>
+        <strong>21 → vingt-et-un</strong>
+      </div>
+
+    </div>
+
+    <!-- 70–99 -->
+
+    <div class="cheat-block featured">
+
+      <h3>70–99 Memory Trick</h3>
+
+      <div class="math-grid">
+
+        <div class="math-card">
+          <span>70</span>
+          <strong>60 + 10</strong>
+        </div>
+
+        <div class="math-card">
+          <span>80</span>
+          <strong>4 × 20</strong>
+        </div>
+
+        <div class="math-card">
+          <span>90</span>
+          <strong>80 + 10</strong>
+        </div>
+
+      </div>
+
+      <div class="example-list">
+
+        <div>70 → <strong>soixante-dix</strong></div>
+        <div>71 → <strong>soixante-et-onze</strong></div>
+        <div>76 → <strong>soixante-seize</strong></div>
+        <div>80 → <strong>quatre-vingts</strong></div>
+        <div>81 → <strong>quatre-vingt-un</strong></div>
+        <div>95 → <strong>quatre-vingt-quinze</strong></div>
+
+      </div>
+
+    </div>
+
+    <!-- Hundreds -->
+
+    <div class="cheat-block">
+
+      <h3>Hundreds</h3>
+
+      <div class="mini-rule">
+        <span class="rule-badge">cent</span>
+        <p>Add <strong>s</strong> only if nothing follows.</p>
+      </div>
+
+      <div class="example-list">
+
+        <div>100 → <strong>cent</strong></div>
+        <div>200 → <strong>deux cents</strong> ✅</div>
+        <div>201 → <strong>deux cent un</strong></div>
+
+      </div>
+
+    </div>
+
+    <!-- Thousands -->
+
+    <div class="cheat-block">
+
+      <h3>Thousands</h3>
+
+      <div class="mini-rule">
+        <span class="rule-badge">mille</span>
+        <p>Never takes an <strong>s</strong>.</p>
+      </div>
+
+      <div class="example-list">
+
+        <div>1,000 → <strong>mille</strong></div>
+        <div>2,000 → <strong>deux mille</strong></div>
+        <div>10,000 → <strong>dix mille</strong></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="final-memory-box">
+
+    <h3>🧠 Memorize These 5 Rules</h3>
+
+    <div class="memory-grid">
+
+      <div>21 uses <strong>et</strong></div>
+      <div>71 keeps <strong>et</strong></div>
+      <div>80 = <strong>4×20</strong></div>
+      <div>81 drops the <strong>s</strong></div>
+      <div><strong>cent</strong> only pluralizes when final</div>
+
+    </div>
+
+  </div>
+
+</section>
+</main>
+
+<footer>
+
+Built with ❤️ by BoliForge
+
+</footer>
+
+<script src="french-data.js"></script>
+<script src="french-rules.js"></script>
+<script src="french-generator.js"></script>
+<script src="audio.js"></script>
+<script src="quiz.js"></script>
+<script src="numbers.js"></script>
+
+</body>
+</html>
